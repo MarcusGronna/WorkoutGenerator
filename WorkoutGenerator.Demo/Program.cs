@@ -26,7 +26,7 @@ while (true)
             if (i == selectedIndex)
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                System.Console.WriteLine($"> {muscleGroups[i]}");
+                Console.WriteLine($"> {muscleGroups[i]}");
                 Console.ResetColor();
             }
             else
