@@ -1,8 +1,8 @@
 ﻿namespace WorkoutGenerator.Core;
 
-public class WorkoutFactory
+public static class WorkoutFactory
 {
-    public Workout GenerateWorkout(List<Exercise> exercises, string muscleGroup, GoalType goalType)
+    public static Workout GenerateWorkout(List<Exercise> exercises, string muscleGroup, GoalType goalType)
     {
         var workout = Workout.Create(exercises, muscleGroup, goalType);
 
