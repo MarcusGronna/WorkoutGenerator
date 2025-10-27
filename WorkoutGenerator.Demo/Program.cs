@@ -1,107 +1,169 @@
 ﻿using WorkoutGenerator.Core;
-using System;
-using System.IO;
 
 Console.Title = "Workout Generator";
 string filePath = Path.Combine(AppContext.BaseDirectory, "data", "exercises.json");
 var service = new WorkoutGeneratorService(filePath);
 
-// === 1. Muscle group selection ===
-var muscleGroups = service.GetAvailableMuscleGroups();
-int selectedIndex = 0;
-ConsoleKey key;
-
-do
+while (true)
 {
+
+    // === 1. Muscle group selection ===
+    var muscleGroups = service.GetAvailableMuscleGroups();
+    int selectedIndex = 0;
+    ConsoleKey key;
+
+    do
+    {
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("=== WORKOUT GENERATOR ===\n");
+        Console.ResetColor();
+
+        Console.WriteLine("Select muscle group (use ↑ / ↓ and press Enter):\n");
+
+        for (int i = 0; i < muscleGroups.Count; i++)
+        {
+            if (i == selectedIndex)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                System.Console.WriteLine($"> {muscleGroups[i]}");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.WriteLine($"  {muscleGroups[i]}");
+            }
+        }
+
+        key = Console.ReadKey(true).Key;
+
+        if (key == ConsoleKey.UpArrow && selectedIndex > 0) selectedIndex--;
+        else if (key == ConsoleKey.DownArrow && selectedIndex < muscleGroups.Count - 1) selectedIndex++;
+
+    } while (key != ConsoleKey.Enter);
+
+    string selectedGroup = muscleGroups[selectedIndex];
+
+    // === 2. Goal type selection ===
+    var goalOptions = new[] { GoalType.Strength, GoalType.Hypertrophy };
+    int goalIndex = 0;
+
+    do
+    {
+        Console.Clear();
+        Console.WriteLine($"Selected group: {selectedGroup}\n");
+        Console.WriteLine("Select goal type (use ↑ / ↓ and press Enter):\n");
+
+        for (int i = 0; i < goalOptions.Length; i++)
+        {
+            if (i == goalIndex)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"> {goalOptions[i]}");
+                Console.ResetColor();
+
+            }
+            else
+            {
+                Console.WriteLine($"  {goalOptions[i]}");
+            }
+        }
+
+        key = Console.ReadKey(true).Key;
+        if (key == ConsoleKey.UpArrow && goalIndex > 0) goalIndex--;
+        else if (key == ConsoleKey.DownArrow && goalIndex < goalOptions.Length - 1) goalIndex++;
+    } while (key != ConsoleKey.Enter);
+
+    GoalType selectedGoal = goalOptions[goalIndex];
+
+    // === 3. Number of exercises ===
+    Console.Clear();
+    Console.WriteLine($"Selected: {selectedGroup} ({selectedGoal})");
+    Console.Write("\nHow many exercises? ");
+    int.TryParse(Console.ReadLine(), out int count);
+    if (count <= 0) count = 4;
+
+    // === 4. Generate workout ===
+    var workout = service.BuildWorkout(selectedGroup, selectedGoal, count);
+
+    // === 5. Display in table ===
     Console.Clear();
     Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("=== WORKOUT GENERATOR ===\n");
+    Console.WriteLine("=== GENERATED WORKOUT ===\n");
     Console.ResetColor();
 
-    Console.WriteLine("Select muscle group (use ↑ / ↓ and press Enter):\n");
+    Console.WriteLine($"Muscle Group : {workout.MuscleGroup}");
+    Console.WriteLine($"Goal Type    : {workout.GoalType}");
+    Console.WriteLine($"Repetitions  : {workout.Repetitions}\n");
 
+    PrintTable(workout.Exercises);
 
-    for (int i = 0; i < muscleGroups.Count; i++)
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("\nWorkout successfully generated!");
+    Console.ResetColor();
+
+    // === 6. Efterval: generera nytt eller avsluta ===
+    var nextOptions = new[] { "Generate new workout", "Exit" };
+    int nextIndex = 0;
+
+    // Markera var vi börjar rita menyn (precis efter nuvarande text)
+    int menuTop = Console.CursorTop + 1;
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("\nWhat next? (↑/↓, Enter):");
+    Console.ResetColor();
+
+    // Rita menyn första gången
+    for (int i = 0; i < nextOptions.Length; i++)
     {
-        if (i == selectedIndex)
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            System.Console.WriteLine($"> {muscleGroups[i]}");
-            Console.ResetColor();
-        }
-        else
-        {
-            Console.WriteLine($"  {muscleGroups[i]}");
-        }
+        Console.WriteLine($"  {nextOptions[i]}");
     }
 
-    key = Console.ReadKey(true).Key;
-
-    if (key == ConsoleKey.UpArrow && selectedIndex > 0) selectedIndex--;
-    else if (key == ConsoleKey.DownArrow && selectedIndex < muscleGroups.Count - 1) selectedIndex++;
-
-} while (key != ConsoleKey.Enter);
-
-string selectedGroup = muscleGroups[selectedIndex];
-
-// === 2. Goal type selection ===
-var goalOptions = new[] { GoalType.Strength, GoalType.Hypertrophy };
-int goalIndex = 0;
-
-do
-{
-    Console.Clear();
-    Console.WriteLine($"Selected group: {selectedGroup}\n");
-    Console.WriteLine("Select goal type (use ↑ / ↓ and press Enter):\n");
-
-    for (int i = 0; i < goalOptions.Length; i++)
+    // Interaktiv meny
+    do
     {
-        if (i == goalIndex)
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            System.Console.WriteLine($"> {goalOptions[i]}");
-            Console.ResetColor();
+        // Flytta markören till första menyraden
+        Console.SetCursorPosition(0, menuTop + 1);
 
-        }
-        else
+        for (int i = 0; i < nextOptions.Length; i++)
         {
-            System.Console.WriteLine($"  {goalOptions[i]}");
+            // Rensa hela raden (för att undvika text som ligger kvar)
+            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, menuTop + 1 + i);
+
+            if (i == nextIndex)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"> {nextOptions[i]}");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.WriteLine($"  {nextOptions[i]}");
+            }
         }
+
+        key = Console.ReadKey(true).Key;
+
+        if (key == ConsoleKey.UpArrow && nextIndex > 0)
+            nextIndex--;
+        else if (key == ConsoleKey.DownArrow && nextIndex < nextOptions.Length - 1)
+            nextIndex++;
+
+    } while (key != ConsoleKey.Enter);
+
+    // 0 = Generate new, 1 = Exit
+    if (nextIndex == 1)
+    {
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Goodbye!");
+        Console.ResetColor();
+        break;
     }
 
-    key = Console.ReadKey(true).Key;
-    if (key == ConsoleKey.UpArrow && goalIndex > 0) goalIndex--;
-    else if (key == ConsoleKey.DownArrow && goalIndex < goalOptions.Length - 1) goalIndex++;
-} while (key != ConsoleKey.Enter);
-
-GoalType selectedGoal = goalOptions[goalIndex];
-
-// === 3. Number of exercises ===
-Console.Clear();
-Console.WriteLine($"Selected: {selectedGroup} ({selectedGoal})");
-Console.Write("\nHow many exercises? ");
-int.TryParse(Console.ReadLine(), out int count);
-if (count <= 0) count = 4;
-
-// === 4. Generate workout ===
-var workout = service.BuildWorkout(selectedGroup, selectedGoal, count);
-
-// === 5. Display in table ===
-Console.Clear();
-Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("=== GENERATED WORKOUT ===\n");
-Console.ResetColor();
-
-Console.WriteLine($"Muscle Group : {workout.MuscleGroup}");
-Console.WriteLine($"Goal Type    : {workout.GoalType}");
-Console.WriteLine($"Repetitions  : {workout.Repetitions}\n");
-
-PrintTable(workout.Exercises);
-
-Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("\nWorkout successfully generated!");
-Console.ResetColor();
-
+    Console.Clear(); // rensa bara om nytt pass ska genereras
+}
 
 static void PrintTable(List<Exercise> exercises)
 {
